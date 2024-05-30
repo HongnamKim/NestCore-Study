@@ -24,7 +24,9 @@
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+[Nest](https://github.com/nestjs/nest) 인프런 강의 정리 및 백업.
+
+[강의노트](https://www.inflearn.com/notes/61756)
 
 ## Installation
 
