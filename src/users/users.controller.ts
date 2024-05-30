@@ -1,11 +1,4 @@
-import {
-  Body,
-  ClassSerializerInterceptor,
-  Controller,
-  Get,
-  Post,
-  UseInterceptors,
-} from '@nestjs/common';
+import { Controller, Get } from '@nestjs/common';
 import { UsersService } from './users.service';
 
 @Controller('users')
@@ -22,7 +15,6 @@ export class UsersController {
   }*/
 
   @Get()
-  @UseInterceptors(ClassSerializerInterceptor)
   getUsers() {
     return this.usersService.getAllUsers();
   }
