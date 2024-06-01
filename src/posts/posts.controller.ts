@@ -18,6 +18,8 @@ import { CreatePostDto } from './dto/create-post.dto';
 
 import { UpdatePostDto } from './dto/update-post.dto';
 import { PatchPostGuard } from './guard/patch-post.guard';
+import { PaginatePostDto } from './dto/paginate-post.dto';
+import { UsersModel } from '../users/entities/users.entity';
 
 @Controller('posts')
 export class PostsController {
@@ -25,8 +27,18 @@ export class PostsController {
 
   // 1) GET /posts
   @Get()
-  getPosts() {
-    return this.postsService.getAllPosts();
+  getPosts(@Query() query: PaginatePostDto) {
+    //return this.postsService.getAllPosts();
+    return this.postsService.paginatePosts(query);
+  }
+
+  // /posts/random
+  @Post('random')
+  @UseGuards(AccessTokenGuard)
+  async postPostRandom(@User() user: UsersModel) {
+    await this.postsService.generatePosts(user.id);
+
+    return true;
   }
 
   // 2-2) GET /posts/author?authorId

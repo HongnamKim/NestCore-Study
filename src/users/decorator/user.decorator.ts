@@ -5,6 +5,8 @@ import {
 } from '@nestjs/common';
 import { UsersModel } from '../entities/users.entity';
 
+// @User('id') 이런 식으로 UsersModel 의 프로퍼티를 넣을 경우 해당 프로퍼티 return
+// @User() 프로퍼티를 넣지 않을 경우 UsersModel 객체 return
 export const User = createParamDecorator(
   (data: keyof UsersModel | undefined, context: ExecutionContext) => {
     const req = context.switchToHttp().getRequest();
