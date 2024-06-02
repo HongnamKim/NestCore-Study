@@ -6,6 +6,7 @@ import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { PaginatePostDto } from './dto/paginate-post.dto';
 import { HOST, PROTOCOL } from '../common/const/env.const';
+import { CommonService } from '../common/common.service';
 
 export interface PostModel {
   id: number;
@@ -23,6 +24,7 @@ export class PostsService {
     // Repository 함수의 return 은 Promise 반환 (async)
     @InjectRepository(PostsModel)
     private readonly postRepository: Repository<PostsModel>,
+    private readonly commonService: CommonService,
   ) {}
 
   async getAllPosts() {
@@ -44,6 +46,36 @@ export class PostsService {
     }
   }
 
+  async paginatePosts(dto: PaginatePostDto) {
+    return this.commonService.paginate(dto, this.postRepository, null, 'posts');
+    /*if (dto.page) {
+      return this.pagePaginatePosts(dto);
+    } else {
+      return this.cursorPaginatePosts(dto);
+    }*/
+  }
+  /**
+   * Response
+   * data: Data[],
+   * total: number,
+   */
+  async pagePaginatePosts(dto: PaginatePostDto) {
+    console.log(dto);
+    const [posts, count] = await this.postRepository.findAndCount({
+      order: {
+        createdAt: dto.order__createdAt,
+      },
+      skip: dto.take * (dto.page - 1),
+      take: dto.take,
+    });
+
+    return {
+      data: posts,
+      total: count,
+      //total: await this.postRepository.count(),
+    };
+  }
+
   /**
    * Response
    * data: Data[],
@@ -53,14 +85,13 @@ export class PostsService {
    * count: 응답한 데이터 개수,
    * next: 다음 요청 시 사용할 URL
    */
-  // 1) 오름차순으로 정렬하는 pagination 만 구현
-  async paginatePosts(dto: PaginatePostDto) {
+  async cursorPaginatePosts(dto: PaginatePostDto) {
     const where: FindOptionsWhere<PostsModel> = {};
 
-    if (dto.where__id_less_than) {
-      where.id = LessThan(dto.where__id_less_than);
-    } else if (dto.where__id_more_than) {
-      where.id = MoreThan(dto.where__id_more_than);
+    if (dto.where__id__less_than) {
+      where.id = LessThan(dto.where__id__less_than);
+    } else if (dto.where__id__more_than) {
+      where.id = MoreThan(dto.where__id__more_than);
     }
 
     const posts = await this.postRepository.find({
@@ -71,9 +102,9 @@ export class PostsService {
       take: dto.take,
     });
 
-    // 해당되는 포스트가 0개 이상이면
+    // 반환하는 포스트가 0개 이상이면
     // 마지막 포스트
-    // 0개일 경우 null 을 반환
+    // 0개일 경우 || 다음 cursor 가 없을 경우 null 을 반환
     const lastItem =
       posts.length > 0 && posts.length === dto.take
         ? posts[posts.length - 1]
@@ -82,25 +113,25 @@ export class PostsService {
     // lastItem 이 있는 경우에만 생성
     const nextUrl = lastItem && new URL(`${PROTOCOL}://${HOST}/posts`);
 
-    console.log(dto);
-    console.log(Object.keys(dto));
-
     if (nextUrl) {
       for (const key of Object.keys(dto)) {
         if (dto[key]) {
           // 요청 시 보낸 order 와 take 를 유지
-          if (key !== 'where__id_more_than' && key !== 'where__id_less_than') {
+          if (
+            key !== 'where__id__more_than' &&
+            key !== 'where__id__less_than'
+          ) {
             nextUrl.searchParams.append(key, dto[key]);
           }
         }
       }
 
-      let key = null;
+      let key;
 
-      if (dto.order__createdAt === 'ASC') {
-        key = 'where__id_more_than';
+      if (dto.order__createdAt === 'ASC' || dto.order__createdAt === 'asc') {
+        key = 'where__id__more_than';
       } else {
-        key = 'where__id_less_than';
+        key = 'where__id__less_than';
       }
 
       // 마지막 post 의 id 로 쿼리 파라미터 넣어줌.
@@ -110,7 +141,7 @@ export class PostsService {
     return {
       data: posts,
       cursor: {
-        after: lastItem?.id ?? null,
+        after: lastItem?.id ?? null, // undefined 대신 null
       },
       count: posts.length,
       next: nextUrl?.toString() ?? null,

@@ -1,13 +1,19 @@
-import { IsIn, IsNumber, IsOptional } from 'class-validator';
+import { BasePaginationDto } from '../../common/dto/base-pagination.dto';
+//import { IsIn, IsNumber, IsOptional } from 'class-validator';
 //import { Type } from 'class-transformer';
 
-export class PaginatePostDto {
+export class PaginatePostDto extends BasePaginationDto {
+  /*
+  @IsNumber()
+  @IsOptional()
+  page?: number;
+
   // 이전 마지막 데이터의 ID
   // 이 프로퍼티에 입력된 ID 보다 높은 ID 부터 값을 가져오기
   @IsNumber()
   @IsOptional() // undefined 일 경우 0으로
   //@Type(() => Number) transformOption 의 enableImplicitConversion: true 로 대체
-  where__id_more_than: number = 0;
+  where__id_more_than: number;
 
   @IsNumber()
   @IsOptional()
@@ -24,4 +30,5 @@ export class PaginatePostDto {
   @IsOptional()
   //@Type(() => Number)
   take: number = 20;
+  */
 }
