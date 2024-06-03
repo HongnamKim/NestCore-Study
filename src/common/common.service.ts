@@ -16,7 +16,7 @@ export class CommonService {
    * @param dto pagination 을 위한 옵션 dto
    * @param repository 데이터를 가져올 repository
    * @param overrideFindOptions 기본 쿼리 옵션 덮어쓰는 경우
-   * @param path nextUrl 을 위한 url ex) /posts, /users
+   * @param path nextUrl 을 위한 url ex) posts, users
    */
   paginate<T extends BaseModel>(
     dto: BasePaginationDto,
@@ -34,21 +34,55 @@ export class CommonService {
   private async pagePaginate<T extends BaseModel>(
     dto: BasePaginationDto,
     repository: Repository<T>,
-    overrideFindOptions: FindManyOptions<T>,
-  ) {}
+    overrideFindOptions: FindManyOptions<T> = {},
+  ) {
+    /**
+     * dto = {
+     *   where__id__more_than = 20;
+     *   order__createdAt = 'asc';
+     *   page = 1;
+     *   take = 20;
+     * }
+     */
+    const findOptions = this.composeFindOptions<T>(dto);
+
+    const [data, count] = await repository.findAndCount({
+      ...findOptions,
+      ...overrideFindOptions,
+    });
+
+    return {
+      data,
+      total: count,
+    };
+  }
 
   private async cursorPaginate<T extends BaseModel>(
     dto: BasePaginationDto,
     repository: Repository<T>,
-    overrideFindOptions: FindManyOptions<T>,
+    overrideFindOptions: FindManyOptions<T> = {},
     path: string,
   ) {
     /**
      * where__likeCount__more_than
      *
-     * where__title__ilike
+     * where__title__i_like
      */
+
+    /**
+     * findOptions = {
+     *   where: {
+     *     id: MoreThan(dto.where__id__more_than), (20)
+     *   },
+     *   order: {
+     *     createdAt: dto.order__createdAt, ('ASC' | 'DESC')
+     *   },
+     *   take: dto.take (20)
+     * }
+     */
+    // 요청 쿼리 파라미터로 보낸 key, value 로 FindManyOptions 생성
     const findOptions = this.composeFindOptions<T>(dto);
+
     const results = await repository.find({
       ...findOptions,
       ...overrideFindOptions,
@@ -183,7 +217,12 @@ export class CommonService {
        */
       // ['where', 'id', 'more_than']
       const [_, filed, operator] = split;
-      options[filed] = FILTER_MAPPER[operator](value);
+
+      if (operator === 'i_like') {
+        options[filed] = FILTER_MAPPER[operator](`%${value}%`);
+      } else {
+        options[filed] = FILTER_MAPPER[operator](value);
+      }
     }
     return options;
   }

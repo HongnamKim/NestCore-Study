@@ -8,15 +8,6 @@ import { PaginatePostDto } from './dto/paginate-post.dto';
 import { HOST, PROTOCOL } from '../common/const/env.const';
 import { CommonService } from '../common/common.service';
 
-export interface PostModel {
-  id: number;
-  author: string;
-  title: string;
-  content: string;
-  likeCount: number;
-  commentCount: number;
-}
-
 @Injectable()
 export class PostsService {
   constructor(
@@ -27,6 +18,9 @@ export class PostsService {
     private readonly commonService: CommonService,
   ) {}
 
+  /**
+   * @deprecated paginatePosts 로 대체되었음.
+   */
   async getAllPosts() {
     // find 조건이 없다면 테이블의 모든 데이터 반환
     return this.postRepository.find({
@@ -47,13 +41,19 @@ export class PostsService {
   }
 
   async paginatePosts(dto: PaginatePostDto) {
-    return this.commonService.paginate(dto, this.postRepository, null, 'posts');
+    return this.commonService.paginate(
+      dto,
+      this.postRepository,
+      { relations: ['author'] },
+      'posts',
+    );
     /*if (dto.page) {
       return this.pagePaginatePosts(dto);
     } else {
       return this.cursorPaginatePosts(dto);
     }*/
   }
+
   /**
    * Response
    * data: Data[],
@@ -249,4 +249,13 @@ export class PostsService {
 
     return postId;
   }
+}
+
+export interface PostModel {
+  id: number;
+  author: string;
+  title: string;
+  content: string;
+  likeCount: number;
+  commentCount: number;
 }
