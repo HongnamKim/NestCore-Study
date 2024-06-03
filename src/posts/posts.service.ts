@@ -5,8 +5,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { PaginatePostDto } from './dto/paginate-post.dto';
-import { HOST, PROTOCOL } from '../common/const/env.const';
 import { CommonService } from '../common/common.service';
+import { ConfigService } from '@nestjs/config';
+import { ENV_HOST_KEY, ENV_PROTOCOL_KEY } from '../common/const/env-keys.const';
 
 @Injectable()
 export class PostsService {
@@ -16,6 +17,7 @@ export class PostsService {
     @InjectRepository(PostsModel)
     private readonly postRepository: Repository<PostsModel>,
     private readonly commonService: CommonService,
+    private readonly configService: ConfigService,
   ) {}
 
   /**
@@ -110,8 +112,11 @@ export class PostsService {
         ? posts[posts.length - 1]
         : null;
 
+    const protocol = this.configService.get<string>(ENV_PROTOCOL_KEY);
+    const host = this.configService.get<string>(ENV_HOST_KEY);
+
     // lastItem 이 있는 경우에만 생성
-    const nextUrl = lastItem && new URL(`${PROTOCOL}://${HOST}/posts`);
+    const nextUrl = lastItem && new URL(`${protocol}://${host}/posts`);
 
     if (nextUrl) {
       for (const key of Object.keys(dto)) {
@@ -182,7 +187,7 @@ export class PostsService {
     return posts;
   }
 
-  async createPost(authorId: number, postDto: CreatePostDto) {
+  async createPost(authorId: number, postDto: CreatePostDto, image?: string) {
     // 1) create -> 저장할 객체를 생성
     // 2) save -> 객체를 저장 (create 로 생성한 객체)
 
@@ -191,6 +196,7 @@ export class PostsService {
         id: authorId,
       },
       ...postDto,
+      image,
       likeCount: 0,
       commentCount: 0,
     });

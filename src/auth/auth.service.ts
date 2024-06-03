@@ -1,10 +1,14 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersModel } from '../users/entities/users.entity';
-import { HASH_ROUNDS, JWT_SECRET } from './const/auth.const';
 import { UsersService } from '../users/users.service';
 import * as bcrypt from 'bcrypt';
 import { RegisterUserDto } from './dto/register-user.dto';
+import { ConfigService } from '@nestjs/config';
+import {
+  ENV_HASH_ROUNDS,
+  ENV_JWT_SECRET,
+} from '../common/const/env-keys.const';
 
 type JwtToken = string;
 type LoginJwtTokens = {
@@ -18,6 +22,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     // module 에서 import 받은 UsersModule 의 UsersService 사용
     private readonly usersService: UsersService,
+    private readonly configService: ConfigService,
   ) {}
 
   /**
@@ -111,7 +116,7 @@ export class AuthService {
   verifyToken(token: string) {
     try {
       return this.jwtService.verify(token, {
-        secret: JWT_SECRET,
+        secret: this.configService.get<string>(ENV_JWT_SECRET),
       });
     } catch (e) {
       throw new UnauthorizedException('유효하지 않은 토큰입니다.');
@@ -126,7 +131,7 @@ export class AuthService {
   rotateToken(token: string, isRefreshToken: boolean) {
     // JWT payload
     const decoded = this.jwtService.verify(token, {
-      secret: JWT_SECRET,
+      secret: this.configService.get<string>(ENV_JWT_SECRET),
     });
 
     /**
@@ -178,7 +183,10 @@ export class AuthService {
     user: RegisterUserDto,
   ) {
     // hash 할 데이터, hash round
-    const hash = await bcrypt.hash(user.password, HASH_ROUNDS);
+    const hash = await bcrypt.hash(
+      user.password,
+      this.configService.get<number>(ENV_HASH_ROUNDS),
+    );
 
     const newUser = await this.usersService.createUser({
       ...user,
@@ -256,7 +264,7 @@ export class AuthService {
     };
 
     return this.jwtService.sign(payload, {
-      secret: JWT_SECRET,
+      secret: this.configService.get<string>(ENV_JWT_SECRET),
       // seconds
       expiresIn: isRefreshToken ? 3600 : 300,
     });
