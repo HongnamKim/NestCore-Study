@@ -1,5 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { FindOptionsWhere, LessThan, MoreThan, Repository } from 'typeorm';
+import {
+  FindOptionsWhere,
+  ILike,
+  LessThan,
+  MoreThan,
+  Repository,
+} from 'typeorm';
 import { PostsModel } from './entities/posts.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CreatePostDto } from './dto/create-post.dto';
@@ -21,7 +27,7 @@ export class PostsService {
   ) {}
 
   /**
-   * @deprecated paginatePosts 로 대체되었음.
+   * //@deprecated paginatePosts 로 대체되었음.
    */
   async getAllPosts() {
     // find 조건이 없다면 테이블의 모든 데이터 반환

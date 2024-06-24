@@ -32,8 +32,10 @@ import { v4 as uuid } from 'uuid';
          * 두번째 파라미터에는 파일을 받을지 말지에 대한 boolean
          */
         // xxx.jpg --> jpg 확장자 추출
+        // extname 메소드로 추출
         const ext = extname(file.originalname);
 
+        // 파일 확장자 체크
         if (ext !== '.jpg' && ext !== '.jpeg' && ext !== '.png') {
           return cb(
             new BadRequestException('jpg/jpeg/png 파일만 업로드 가능'),
@@ -45,7 +47,7 @@ import { v4 as uuid } from 'uuid';
       },
       storage: multer.diskStorage({
         // 파일 저장 위치
-        destination: function (req, res, cb) {
+        destination: (req, res, cb) => {
           cb(null, POST_IMAGE_PATH);
         },
         // 저장할 이름

@@ -62,14 +62,13 @@ export class PostsController {
   @UseInterceptors(FileInterceptor('image')) // 요청 시 key 값
   postPosts(
     //@Request() req: any,
-
     // @Body('title') title: string,
     // @Body('content') content: string,
     @User('id') userId: number,
     @Body() body: CreatePostDto,
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    //const authorId = req.user.id;
+    //const authorId = req.user.id; --> AccessTokenGuard 에서 JWT 확인 후 req 에 넣은 사용자 정보
     return this.postsService.createPost(userId, body, file?.filename);
   }
 

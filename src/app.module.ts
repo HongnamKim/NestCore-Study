@@ -19,10 +19,14 @@ import {
 } from './common/const/env-keys.const';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { PUBLIC_FOLDER_PATH } from './common/const/path.const';
+import * as process from 'process';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
 
 @Module({
   imports: [
-    TypeOrmModule.forRootAsync({
+    /*TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
         // docker + docker-compose 로 postgres 를 실행
@@ -37,6 +41,16 @@ import { PUBLIC_FOLDER_PATH } from './common/const/path.const';
         synchronize: true, // code 와 db 의 싱크, 운영 시에는 false 로 두어야한다.
       }),
       inject: [ConfigService],
+    }),*/
+    TypeOrmModule.forRoot({
+      type: 'postgres',
+      host: process.env[ENV_DB_HOST_KEY],
+      port: +process.env[ENV_DB_PORT_KEY],
+      username: process.env[ENV_DB_USERNAME_KEY], //process.env[ENV_DB_USERNAME_KEY], // 환경변수로 처리해야 됌
+      password: process.env[ENV_DB_PASSWORD_KEY], //process.env[ENV_DB_PASSWORD_KEY], //
+      database: process.env[ENV_DB_DATABASE_KEY],
+      entities: [PostsModel, UsersModel], // TypeORM 으로 관리할 entity
+      synchronize: true, // code 와 db 의 싱크, 운영 시에는 false 로 두어야한다.
     }),
     ConfigModule.forRoot({
       envFilePath: '.env',

@@ -23,7 +23,7 @@ export class CommonService {
   paginate<T extends BaseModel>(
     dto: BasePaginationDto,
     repository: Repository<T>,
-    overrideFindOptions: FindManyOptions<T>,
+    overrideFindOptions: FindManyOptions<T> = {},
     path: string,
   ) {
     if (dto.page) {
@@ -169,8 +169,7 @@ export class CommonService {
     let order: FindOptionsOrder<T> = {};
 
     for (const [key, value] of Object.entries(dto)) {
-      // key -> where__id__less_than
-      // value -> 1
+      // key --> where__id__less_than, order__createdAt
       if (key.startsWith('where__')) {
         where = {
           ...where,
@@ -179,8 +178,7 @@ export class CommonService {
       } else if (key.startsWith('order__')) {
         order = {
           ...order,
-          //...this.parseOrderFilter(key, value),
-          ...this.parseWhereFilter(key, value),
+          ...this.parseOrderFilter(key, value),
         };
       }
     }
@@ -196,39 +194,46 @@ export class CommonService {
   private parseWhereFilter<T extends BaseModel>(
     key: string,
     value: any,
-  ): FindOptionsWhere<T> | FindOptionsOrder<T> {
+  ): FindOptionsWhere<T> {
     const options: FindOptionsWhere<T> = {};
-
+    // key: where__id__more_than
     const split = key.split('__');
+
     if (split.length !== 2 && split.length !== 3) {
       throw new BadRequestException(
-        `쿼리 파라미터의 key 가 잘못 되었습니다. 문제되는 키 ${key}`,
+        `where 필터는 '__' 로 split 했을 때 길이가 2 또는 3이어야 합니다. - 문제되는 키: ${key}`,
       );
     }
-
-    // 길이가 2인 경우
-    // ex) where__id = 3
     if (split.length === 2) {
-      // ['where', 'id']
+      // where__id: 3
       const [_, field] = split;
       options[field] = value;
-    } else {
       /**
-       * 길이가 3인 경우 typeORM 유틸리티 적용이 필요
-       * where__id__more_than 의 경우
-       * where 는 무시, 두번째 값은 필터 조건, 세번째는 유틸리티
-       *
-       * FILTER_MAPPER 에서 해당되는 유틸리티를 가져와 적용
+       * options = {
+       *   id: 3
+       * }
        */
-      // ['where', 'id', 'more_than']
-      const [_, filed, operator] = split;
+    } else {
+      // where__id__more_than
+      const [_, field, operator] = split;
 
-      if (operator === 'i_like') {
-        options[filed] = FILTER_MAPPER[operator](`%${value}%`);
+      // value 가 여러개 들어오는 경우 ex) where__id__between = 3, 5
+      const values = value.toString().split(',');
+
+      if (operator === 'between') {
+        options[field] = FILTER_MAPPER[operator](values[0], values[1]);
+      } else if (operator === 'like' || operator === 'i_like') {
+        options[field] = FILTER_MAPPER[operator](`%${value}%`);
       } else {
-        options[filed] = FILTER_MAPPER[operator](value);
+        options[field] = FILTER_MAPPER[operator](value);
       }
+      /**
+       * options = {
+       *   id: MoreThan(3)
+       * }
+       */
     }
+
     return options;
   }
 
@@ -236,29 +241,19 @@ export class CommonService {
     key: string,
     value: any,
   ): FindOptionsOrder<T> {
-    const order: FindOptionsOrder<T> = {};
-
-    /**
-     * key = 'order__createdAt'
-     * value = 'asc'
-     * order 는 항상 2개로 split
-     */
+    const options: FindOptionsOrder<T> = {};
+    // order__createdAt: 'asc'
     const split = key.split('__');
+
     if (split.length !== 2) {
       throw new BadRequestException(
-        `쿼리 파라미터의 key 가 잘못 되었습니다. 문제되는 키 ${key}`,
+        `order 필터는 '__' 로 split 했을 때 길이가 2어야 합니다. - 문제되는 키값: ${key}`,
       );
     }
 
-    const [_, field] = split;
+    const [_, filed] = split;
+    options[filed] = value;
 
-    /**
-     * order = {
-     *   createdAt: 'asc'
-     * }
-     */
-    order[field] = value;
-
-    return order;
+    return options;
   }
 }
