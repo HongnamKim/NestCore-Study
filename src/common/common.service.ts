@@ -214,6 +214,7 @@ export class CommonService {
        * }
        */
     } else {
+      // length === 3
       // where__id__more_than
       const [_, field, operator] = split;
 

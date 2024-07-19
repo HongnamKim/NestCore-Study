@@ -176,9 +176,11 @@ export class PostsService {
     };
   }
 
-  async getPostById(id: number) {
+  async getPostById(id: number, qr?: QueryRunner) {
+    const repository = this.getRepository(qr);
+
     // async 이기 때문에 await 를 해야한다.
-    const post = await this.postRepository.findOne({
+    const post = await repository.findOne({
       where: {
         id,
       },

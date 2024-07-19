@@ -22,6 +22,9 @@ import { PUBLIC_FOLDER_PATH } from './common/const/path.const';
 import * as process from 'process';
 import * as dotenv from 'dotenv';
 import { ImageModel } from './common/entity/image.entity';
+import { ChatsModule } from './chats/chats.module';
+import { ChatsModel } from './chats/entity/chats.entity';
+import { MessagesModel } from './chats/messages/entity/messages.entity';
 
 dotenv.config();
 
@@ -50,7 +53,7 @@ dotenv.config();
       username: process.env[ENV_DB_USERNAME_KEY], //process.env[ENV_DB_USERNAME_KEY], // 환경변수로 처리해야 됌
       password: process.env[ENV_DB_PASSWORD_KEY], //process.env[ENV_DB_PASSWORD_KEY], //
       database: process.env[ENV_DB_DATABASE_KEY],
-      entities: [PostsModel, UsersModel, ImageModel], // TypeORM 으로 관리할 entity
+      entities: [PostsModel, UsersModel, ImageModel, ChatsModel, MessagesModel], // TypeORM 으로 관리할 entity
       synchronize: true, // code 와 db 의 싱크, 운영 시에는 false 로 두어야한다.
     }),
     ConfigModule.forRoot({
@@ -68,6 +71,7 @@ dotenv.config();
     UsersModule,
     AuthModule,
     CommonModule,
+    ChatsModule,
   ],
   controllers: [AppController],
   providers: [

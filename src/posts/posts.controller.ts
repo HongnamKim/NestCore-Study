@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -9,7 +10,10 @@ import {
   Patch,
   Post,
   Query,
+  Request,
+  UseFilters,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { PostsService } from './posts.service';
 import { AccessTokenGuard } from '../auth/guard/bearer-token.guard';
@@ -22,8 +26,12 @@ import { PatchPostGuard } from './guard/patch-post.guard';
 import { PaginatePostDto } from './dto/paginate-post.dto';
 import { UsersModel } from '../users/entities/users.entity';
 import { ImageModelType } from '../common/entity/image.entity';
-import { DataSource, QueryRunner } from 'typeorm';
+import { DataSource, QueryRunner as QR } from 'typeorm';
 import { PostsImagesService } from './image/images.service';
+import { LogInterceptor } from '../common/Interceptor/log.interceptor';
+import { TransactionInterceptor } from '../common/Interceptor/transaction.interceptor';
+import { QueryRunner } from '../common/decorator/query-runner.decorator';
+import { HttpExceptionFilter } from '../common/exception-filter/http.exception-filter';
 
 @Controller('posts')
 export class PostsController {
@@ -35,8 +43,11 @@ export class PostsController {
 
   // 1) GET /posts
   @Get()
+  @UseInterceptors(LogInterceptor)
+  @UseFilters(HttpExceptionFilter)
   getPosts(@Query() query: PaginatePostDto) {
     //return this.postsService.getAllPosts();
+
     return this.postsService.paginatePosts(query);
   }
 
@@ -61,8 +72,35 @@ export class PostsController {
     return this.postsService.getPostById(id);
   }
 
-  // 3) POST /posts
   @Post()
+  @UseGuards(AccessTokenGuard)
+  @UseInterceptors(TransactionInterceptor)
+  async postPosts(
+    @User('id') userId: number,
+    @Body() body: CreatePostDto,
+    @QueryRunner() qr: QR,
+  ) {
+    // 포스트 글만 생성
+    const post = await this.postsService.createPost(userId, body, qr);
+
+    // 이미지 entity 생성, relation 맺기
+    for (let i = 0; i < body.images.length; i++) {
+      await this.postsImagesService.createPostImage(
+        {
+          post: post, // 연결될 post
+          order: i, // post 내 이미지 순서
+          path: body.images[i], // 이미지 경로(temp 폴더 내 이름)
+          type: ImageModelType.POST_IMAGE, // post 용 이미지
+        },
+        qr,
+      );
+    }
+
+    return this.postsService.getPostById(post.id, qr);
+  }
+
+  // 3) POST /posts
+  /*@Post()
   @UseGuards(AccessTokenGuard)
   // 파일 업로드는 CommonModule 에서 수행
   //@UseInterceptors(FileInterceptor('image')) // 요청 시 key 값
@@ -113,7 +151,7 @@ export class PostsController {
     } finally {
       await qr.release();
     }
-  }
+  }*/
 
   // 4) PATCH /posts/:id
   @Patch(':id')
