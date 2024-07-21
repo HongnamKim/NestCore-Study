@@ -14,14 +14,14 @@ export class ChatsMessagesService {
     private readonly commonService: CommonService,
   ) {}
 
-  async createMessage(dto: CreateMessagesDto) {
+  async createMessage(dto: CreateMessagesDto, authorId: number) {
     const message: MessagesModel = await this.messagesRepository.save({
       chat: {
         // 1:N 관계로 묶어놨기 때문에 primary key 로 관계를 맺어줄 수 있음
         id: dto.chatId,
       },
       author: {
-        id: dto.authorId,
+        id: authorId,
       },
       message: dto.message,
     });

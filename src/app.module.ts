@@ -1,15 +1,21 @@
-import { ClassSerializerInterceptor, Module } from '@nestjs/common';
+import {
+  ClassSerializerInterceptor,
+  MiddlewareConsumer,
+  Module,
+  NestModule,
+  RequestMethod,
+} from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PostsModule } from './posts/posts.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { PostsModel } from './posts/entities/posts.entity';
+import { PostsModel } from './posts/entity/posts.entity';
 import { UsersModule } from './users/users.module';
-import { UsersModel } from './users/entities/users.entity';
+import { UsersModel } from './users/entity/users.entity';
 import { AuthModule } from './auth/auth.module';
 import { CommonModule } from './common/common.module';
 import { APP_INTERCEPTOR } from '@nestjs/core';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import {
   ENV_DB_DATABASE_KEY,
   ENV_DB_HOST_KEY,
@@ -19,12 +25,15 @@ import {
 } from './common/const/env-keys.const';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { PUBLIC_FOLDER_PATH } from './common/const/path.const';
-import * as process from 'process';
 import * as dotenv from 'dotenv';
 import { ImageModel } from './common/entity/image.entity';
 import { ChatsModule } from './chats/chats.module';
 import { ChatsModel } from './chats/entity/chats.entity';
 import { MessagesModel } from './chats/messages/entity/messages.entity';
+import { CommentsModule } from './posts/comments/comments.module';
+import { CommentsModel } from './posts/comments/entity/comments.entity';
+import * as process from 'node:process';
+import { LogMiddleware } from './common/middleware/log.middleware';
 
 dotenv.config();
 
@@ -53,7 +62,14 @@ dotenv.config();
       username: process.env[ENV_DB_USERNAME_KEY], //process.env[ENV_DB_USERNAME_KEY], // 환경변수로 처리해야 됌
       password: process.env[ENV_DB_PASSWORD_KEY], //process.env[ENV_DB_PASSWORD_KEY], //
       database: process.env[ENV_DB_DATABASE_KEY],
-      entities: [PostsModel, UsersModel, ImageModel, ChatsModel, MessagesModel], // TypeORM 으로 관리할 entity
+      entities: [
+        PostsModel,
+        UsersModel,
+        ImageModel,
+        ChatsModel,
+        MessagesModel,
+        CommentsModel,
+      ], // TypeORM 으로 관리할 entity
       synchronize: true, // code 와 db 의 싱크, 운영 시에는 false 로 두어야한다.
     }),
     ConfigModule.forRoot({
@@ -72,6 +88,7 @@ dotenv.config();
     AuthModule,
     CommonModule,
     ChatsModule,
+    CommentsModule,
   ],
   controllers: [AppController],
   providers: [
@@ -83,3 +100,10 @@ dotenv.config();
   ],
 })
 export class AppModule {}
+/*export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): any {
+    consumer
+      .apply(LogMiddleware)
+      .forRoutes({ path: '*', method: RequestMethod.ALL });
+  }
+}*/

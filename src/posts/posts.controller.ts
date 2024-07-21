@@ -1,10 +1,8 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
   Get,
-  InternalServerErrorException,
   Param,
   ParseIntPipe,
   Patch,
@@ -24,11 +22,10 @@ import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { PatchPostGuard } from './guard/patch-post.guard';
 import { PaginatePostDto } from './dto/paginate-post.dto';
-import { UsersModel } from '../users/entities/users.entity';
+import { UsersModel } from '../users/entity/users.entity';
 import { ImageModelType } from '../common/entity/image.entity';
 import { DataSource, QueryRunner as QR } from 'typeorm';
 import { PostsImagesService } from './image/images.service';
-import { LogInterceptor } from '../common/Interceptor/log.interceptor';
 import { TransactionInterceptor } from '../common/Interceptor/transaction.interceptor';
 import { QueryRunner } from '../common/decorator/query-runner.decorator';
 import { HttpExceptionFilter } from '../common/exception-filter/http.exception-filter';
@@ -43,7 +40,6 @@ export class PostsController {
 
   // 1) GET /posts
   @Get()
-  @UseInterceptors(LogInterceptor)
   @UseFilters(HttpExceptionFilter)
   getPosts(@Query() query: PaginatePostDto) {
     //return this.postsService.getAllPosts();

@@ -2,6 +2,8 @@ import {
   ConnectedSocket,
   MessageBody,
   OnGatewayConnection,
+  OnGatewayDisconnect,
+  OnGatewayInit,
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
@@ -13,29 +15,86 @@ import { ChatsService } from './chats.service';
 import { EnterChatDto } from './dto/enter-chat.dto';
 import { CreateMessagesDto } from './messages/dto/create-messages.dto';
 import { ChatsMessagesService } from './messages/messages.service';
+import {
+  UseFilters,
+  UseGuards,
+  UsePipes,
+  ValidationPipe,
+} from '@nestjs/common';
+import { SocketCatchHttpExceptionFilter } from '../common/exception-filter/socket-catch-http.exception-filter';
+import { SocketBearerTokenGuard } from '../auth/guard/socket/socket-bearer-token.guard';
+import { UsersModel } from '../users/entity/users.entity';
+import { UsersService } from '../users/users.service';
+import { AuthService } from '../auth/auth.service';
+import * as console from 'node:console';
 
 @WebSocketGateway({
   // ws://localhost:3000/chats
   namespace: 'chats',
 })
-export class ChatsGateway implements OnGatewayConnection {
+@UsePipes(
+  new ValidationPipe({
+    transform: true,
+    transformOptions: {
+      enableImplicitConversion: true,
+    },
+    whitelist: true,
+    forbidNonWhitelisted: true,
+  }),
+)
+@UseFilters(SocketCatchHttpExceptionFilter)
+export class ChatsGateway
+  implements OnGatewayConnection, OnGatewayInit, OnGatewayDisconnect
+{
   constructor(
     private readonly chatsService: ChatsService,
     private readonly messagesService: ChatsMessagesService,
+    private readonly usersService: UsersService,
+    private readonly authService: AuthService,
   ) {}
 
   @WebSocketServer()
   server: Server; // WebSocket 서버 객체
 
+  afterInit(server: any): any {
+    // gateway 가 초기화 되고 실행되는 메소드
+    console.log(`after gateway init`);
+  }
+
+  handleDisconnect(client: any): any {}
+
   // 클라이언트에서 연결됐을 때 실행됨
-  handleConnection(socket: Socket): any {
+  async handleConnection(socket: Socket & { user: UsersModel }) {
     console.log(`on connect called : ${socket.id}`);
+    const headers = socket.handshake.headers;
+
+    // Bearer xxxxx
+    const rawToken = headers['authorization'];
+
+    if (!rawToken) {
+      socket.disconnect();
+      //throw new WsException('토큰이 없습니다.');
+    }
+
+    try {
+      const token = this.authService.extractTokenFromHeader(rawToken, true);
+
+      const payload = this.authService.verifyToken(token);
+
+      const user = await this.usersService.getUserByEmail(payload.email);
+
+      socket.user = user;
+
+      return true;
+    } catch (e) {
+      socket.disconnect();
+    }
   }
 
   @SubscribeMessage('create_chat')
   async createChat(
     @MessageBody() data: CreateChatDto,
-    @ConnectedSocket() socket: Socket,
+    @ConnectedSocket() socket: Socket & { user: UsersModel },
   ) {
     const chat = await this.chatsService.createChat(data);
     return chat;
@@ -45,7 +104,7 @@ export class ChatsGateway implements OnGatewayConnection {
   async enterChat(
     // room 의 chat id 를 리스트로 받는다.
     @MessageBody() data: EnterChatDto,
-    @ConnectedSocket() socket: Socket, // 현재 연결된 소켓
+    @ConnectedSocket() socket: Socket & { user: UsersModel }, // 현재 연결된 소켓
   ) {
     /*for (const chatId of data) {
       //socket.join 으로 room 에 들어갈 수 있다.
@@ -84,7 +143,7 @@ export class ChatsGateway implements OnGatewayConnection {
   @SubscribeMessage('send_message')
   async sendMessage(
     @MessageBody() dto: CreateMessagesDto,
-    @ConnectedSocket() socket: Socket,
+    @ConnectedSocket() socket: Socket & { user: UsersModel },
   ) {
     /*
     this.server
@@ -100,7 +159,10 @@ export class ChatsGateway implements OnGatewayConnection {
       });
     }
 
-    const message = await this.messagesService.createMessage(dto);
+    const message = await this.messagesService.createMessage(
+      dto,
+      socket.user.id,
+    );
 
     socket.to(message.chat.id.toString()).emit('receive_message', {
       message: message.message,

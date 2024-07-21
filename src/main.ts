@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { HttpExceptionFilter } from './common/exception-filter/http.exception-filter';
+import { LogInterceptor } from './common/Interceptor/log.interceptor';
 
 async function bootstrap() {
   //dotenv.config();
@@ -17,6 +18,8 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     }),
   );
+
+  app.useGlobalInterceptors(new LogInterceptor());
 
   app.useGlobalFilters(new HttpExceptionFilter());
 
