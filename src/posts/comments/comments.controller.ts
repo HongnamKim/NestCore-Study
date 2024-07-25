@@ -11,20 +11,18 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CommentsService } from './comments.service';
-import { CommonService } from '../../common/common.service';
 import { PaginateCommentsDto } from './dto/paginate-comments.dto';
 import { AccessTokenGuard } from '../../auth/guard/bearer-token.guard';
 import { CreateCommentsDto } from './dto/create-comments.dto';
 import { User } from '../../users/decorator/user.decorator';
 import { UsersModel } from '../../users/entity/users.entity';
 import { UpdateCommentsDto } from './dto/update-comments.dto';
+import { IsPublic } from '../../common/decorator/is-public.decorator';
+import { IsCommentMineOrAdminGuard } from './guard/is-comment-mine-or-admin.guard';
 
 @Controller('posts/:postId/comments')
 export class CommentsController {
-  constructor(
-    private readonly commentsService: CommentsService,
-    private readonly commonService: CommonService,
-  ) {
+  constructor(private readonly commentsService: CommentsService) {
     /**
      * 1) Entity 생성
      * author -> 작성자
@@ -41,6 +39,7 @@ export class CommentsController {
   }
 
   @Get()
+  @IsPublic()
   paginateComments(
     @Param('postId', ParseIntPipe) postId: number,
     @Query() query: PaginateCommentsDto,
@@ -49,12 +48,12 @@ export class CommentsController {
   }
 
   @Get(':commentId')
+  @IsPublic()
   getComment(@Param('commentId', ParseIntPipe) commentId: number) {
     return this.commentsService.getCommentById(commentId);
   }
 
   @Post()
-  @UseGuards(AccessTokenGuard)
   postComment(
     @Param('postId', ParseIntPipe) postId: number,
     @Body() body: CreateCommentsDto,
@@ -64,7 +63,7 @@ export class CommentsController {
   }
 
   @Patch(':commentId')
-  @UseGuards(AccessTokenGuard)
+  @UseGuards(IsCommentMineOrAdminGuard)
   async patchComment(
     @Param('commentId', ParseIntPipe) commentId: number,
     @Body() body: UpdateCommentsDto,
@@ -73,7 +72,7 @@ export class CommentsController {
   }
 
   @Delete(':commentId')
-  @UseGuards(AccessTokenGuard)
+  @UseGuards(IsCommentMineOrAdminGuard)
   deleteComment(@Param('commentId', ParseIntPipe) commentId: number) {
     return this.commentsService.deleteComment(commentId);
   }

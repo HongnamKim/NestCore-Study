@@ -8,8 +8,6 @@ import {
   Patch,
   Post,
   Query,
-  Request,
-  UseFilters,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
@@ -24,23 +22,25 @@ import { PatchPostGuard } from './guard/patch-post.guard';
 import { PaginatePostDto } from './dto/paginate-post.dto';
 import { UsersModel } from '../users/entity/users.entity';
 import { ImageModelType } from '../common/entity/image.entity';
-import { DataSource, QueryRunner as QR } from 'typeorm';
+import { QueryRunner as QR } from 'typeorm';
 import { PostsImagesService } from './image/images.service';
 import { TransactionInterceptor } from '../common/Interceptor/transaction.interceptor';
 import { QueryRunner } from '../common/decorator/query-runner.decorator';
-import { HttpExceptionFilter } from '../common/exception-filter/http.exception-filter';
+import { RolesEnum } from '../users/const/roles.const';
+import { Roles } from '../users/decorator/roles.decorator';
+import { IsPublic } from '../common/decorator/is-public.decorator';
+import { IsPostMineOrAdminGuard } from './guard/is-post-mine-or-admin.guard';
 
 @Controller('posts')
 export class PostsController {
   constructor(
     private readonly postsService: PostsService,
     private readonly postsImagesService: PostsImagesService,
-    private readonly dataSource: DataSource,
   ) {}
 
   // 1) GET /posts
   @Get()
-  @UseFilters(HttpExceptionFilter)
+  @IsPublic()
   getPosts(@Query() query: PaginatePostDto) {
     //return this.postsService.getAllPosts();
 
@@ -49,7 +49,6 @@ export class PostsController {
 
   // /posts/random
   @Post('random')
-  @UseGuards(AccessTokenGuard)
   async postPostRandom(@User() user: UsersModel) {
     await this.postsService.generatePosts(user.id);
 
@@ -58,18 +57,19 @@ export class PostsController {
 
   // 2-2) GET /posts/author?authorId
   @Get('author')
+  @IsPublic()
   getPostByAuthorId(@Query('authorId', ParseIntPipe) authorId: number) {
     return this.postsService.getPostByAuthorId(authorId);
   }
 
   // 2) GET /posts/:id
   @Get(':id')
+  @IsPublic()
   getPost(@Param('id', ParseIntPipe) id: number) {
     return this.postsService.getPostById(id);
   }
 
   @Post()
-  @UseGuards(AccessTokenGuard)
   @UseInterceptors(TransactionInterceptor)
   async postPosts(
     @User('id') userId: number,
@@ -150,19 +150,21 @@ export class PostsController {
   }*/
 
   // 4) PATCH /posts/:id
-  @Patch(':id')
-  @UseGuards(AccessTokenGuard, PatchPostGuard)
+  @Patch(':postId')
+  //@UseGuards(AccessTokenGuard, PatchPostGuard)
+  @UseGuards(IsPostMineOrAdminGuard)
   patchPost(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('postId', ParseIntPipe) id: number,
     @Body() body: UpdatePostDto,
     // @Body('title') title?: string,
     // @Body('content') content?: string,
   ) {
-    return this.postsService.updatePost(+id, body);
+    return this.postsService.updatePost(id, body);
   }
 
   // 5) DELETE /posts/:id
   @Delete(':id')
+  @Roles(RolesEnum.ADMIN) // 함수에 메타데이터 추가
   deletePost(@Param('id', ParseIntPipe) id: number) {
     return this.postsService.deletePost(+id);
   }

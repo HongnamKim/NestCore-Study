@@ -1,10 +1,4 @@
-import {
-  ClassSerializerInterceptor,
-  MiddlewareConsumer,
-  Module,
-  NestModule,
-  RequestMethod,
-} from '@nestjs/common';
+import { ClassSerializerInterceptor, Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PostsModule } from './posts/posts.module';
@@ -14,7 +8,7 @@ import { UsersModule } from './users/users.module';
 import { UsersModel } from './users/entity/users.entity';
 import { AuthModule } from './auth/auth.module';
 import { CommonModule } from './common/common.module';
-import { APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import {
   ENV_DB_DATABASE_KEY,
@@ -33,7 +27,9 @@ import { MessagesModel } from './chats/messages/entity/messages.entity';
 import { CommentsModule } from './posts/comments/comments.module';
 import { CommentsModel } from './posts/comments/entity/comments.entity';
 import * as process from 'node:process';
-import { LogMiddleware } from './common/middleware/log.middleware';
+import { RolesGuard } from './users/guard/roles.guard';
+import { AccessTokenGuard } from './auth/guard/bearer-token.guard';
+import { UserFollowersModel } from './users/entity/user-followers.entity';
 
 dotenv.config();
 
@@ -69,6 +65,7 @@ dotenv.config();
         ChatsModel,
         MessagesModel,
         CommentsModel,
+        UserFollowersModel,
       ], // TypeORM 으로 관리할 entity
       synchronize: true, // code 와 db 의 싱크, 운영 시에는 false 로 두어야한다.
     }),
@@ -96,6 +93,14 @@ dotenv.config();
     {
       provide: APP_INTERCEPTOR,
       useClass: ClassSerializerInterceptor,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: AccessTokenGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
     },
   ],
 })

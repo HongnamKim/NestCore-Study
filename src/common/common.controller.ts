@@ -15,7 +15,6 @@ export class CommonController {
 
   // common/image
   @Post('image')
-  @UseGuards(AccessTokenGuard)
   @UseInterceptors(FileInterceptor('image'))
   postImage(@UploadedFile() file: Express.Multer.File) {
     // 저장될 이미지에 대한 검증은 MulterModule 에서 완료
