@@ -52,16 +52,26 @@ export class UsersModel extends BaseModel {
   })
   role: RolesEnum;
 
+  @Column({ default: 0 })
+  followerCount: number;
+
+  @Column({ default: 0 })
+  followeeCount: number;
+
+  // 작성 post
   @OneToMany(() => PostsModel, (post) => post.author)
   posts: PostsModel[];
 
+  // 참여 중인 chatting
   @ManyToMany(() => ChatsModel, (chats) => chats.users)
   @JoinTable()
   chats: ChatsModel[];
 
+  // 보낸 chatting message
   @OneToMany(() => MessagesModel, (message) => message.author)
   messages: MessagesModel[];
 
+  // 작성 댓글
   @OneToMany(() => CommentsModel, (comment) => comment.author)
   postComments: CommentsModel[];
 
@@ -69,13 +79,7 @@ export class UsersModel extends BaseModel {
   @OneToMany(() => UserFollowersModel, (ufm) => ufm.follower)
   followers: UserFollowersModel[];
 
-  @Column()
-  followerCount: number;
-
   // 나를 팔로우 하는 사람
   @OneToMany(() => UserFollowersModel, (ufm) => ufm.followee)
   followees: UserFollowersModel[];
-
-  @Column()
-  followeeCount: number;
 }
